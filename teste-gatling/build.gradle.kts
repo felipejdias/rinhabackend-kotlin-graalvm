@@ -12,6 +12,6 @@ repositories {
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
+        languageVersion = JavaLanguageVersion.of(17) // projeto em scala da rinha nao funciona com java 21
     }
 }
