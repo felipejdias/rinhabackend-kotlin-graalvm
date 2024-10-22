@@ -1,12 +1,4 @@
-package com.pieropan.simulations
 
-import io.gatling.commons.validation._
-import io.gatling.core.Predef._
-import io.gatling.core.session.Session
-import io.gatling.http.Predef._
-
-import scala.concurrent.duration._
-import scala.util.{Random, Try}
 
 
 class RinhaBackendCrebitosSimulation
