@@ -34,6 +34,6 @@ data class TransactionResponse(
     @JsonProperty("descricao")
     val description: String = "",
 
-    @JsonProperty("realizado_em")
+    @JsonProperty("realizada_em")
     val createdAt: String = ""
 )

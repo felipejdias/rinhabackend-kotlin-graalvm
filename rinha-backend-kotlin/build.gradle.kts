@@ -1,10 +1,9 @@
 plugins {
-    kotlin("jvm") version "1.9.24"
-    kotlin("plugin.spring") version "1.9.24"
-    id("org.springframework.boot") version "3.3.2"
-    id("io.spring.dependency-management") version "1.1.6"
-    id("org.graalvm.buildtools.native") version "0.10.2"
-    kotlin("plugin.jpa") version "1.9.24"
+    kotlin("jvm") version "2.3.21"
+    kotlin("plugin.spring") version "2.3.21"
+    id("org.springframework.boot") version "4.1.0"
+    id("io.spring.dependency-management") version "1.1.7"
+    id("org.graalvm.buildtools.native") version "1.1.1"
 }
 
 group = "com.felipejdias"
@@ -12,15 +11,13 @@ version = "0.0.1-SNAPSHOT"
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(25)
     }
 }
 
 repositories {
     mavenCentral()
 }
-
-extra["springCloudVersion"] = "2023.0.3"
 
 dependencies {
 
@@ -30,30 +27,35 @@ dependencies {
     //spring
     implementation("org.springframework.boot:spring-boot-starter-web")
 
-    implementation("com.zaxxer:HikariCP:5.1.0")
-
+    implementation("org.springframework.boot:spring-boot-starter-jdbc")
 
     //postgress
     implementation("org.postgresql:postgresql")
 
-    // https://mvnrepository.com/artifact/org.graalvm.nativeimage/svm
-    compileOnly("org.graalvm.nativeimage:svm:24.0.2")
-
-
-}
-
-dependencyManagement {
-    imports {
-        mavenBom("org.springframework.cloud:spring-cloud-dependencies:${property("springCloudVersion")}")
-    }
 }
 
 kotlin {
     compilerOptions {
-        freeCompilerArgs.addAll("-Xjsr305=strict")
+        freeCompilerArgs.addAll("-Xjsr305=strict", "-Xannotation-default-target=param-property")
     }
 }
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+tasks.bootJar {
+    archiveFileName.set("rinha-backend-2024-q1.jar")
+}
+
+graalvmNative {
+    binaries {
+        named("main") {
+            imageName.set("rinha-backend-2024-q1")
+            // sem limite o native-image pega ~75% da RAM e todas as CPUs da VM do Docker Desktop
+            // e derruba o daemon do Docker na fase de compilacao
+            jvmArgs.add("-Xmx4g")
+            buildArgs.add("--parallelism=4")
+        }
+    }
 }

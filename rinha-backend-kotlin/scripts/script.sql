@@ -49,6 +49,11 @@ BEGIN
     -- Bloquear a linha do cliente para atualização
     PERFORM * FROM client WHERE client_id = clientIdParam FOR UPDATE;
 
+    -- Cliente inexistente: SQLSTATE proprio para a API responder 404 (e nao 422)
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Cliente nao encontrado' USING ERRCODE = 'P0002';
+    END IF;
+
     -- Determinar se a transação é débito ou crédito
     IF typeParam = 'd' THEN
         newBalance := -amountParam; -- Débito subtrai do saldo

@@ -1,33 +1,26 @@
 package com.felipejdias.rinhabackend2024q1.db.repository
 
-import com.felipejdias.rinhabackend2024q1.db.connection.DatabaseConnection
 import com.felipejdias.rinhabackend2024q1.db.model.TransactionEntity
 import com.felipejdias.rinhabackend2024q1.exchange.TransactionResponse
-import java.sql.CallableStatement
+import org.springframework.stereotype.Repository
+import javax.sql.DataSource
 
-class TransactionRepository {
+@Repository
+class TransactionRepository(private val dataSource: DataSource) {
 
     fun registerTransaction(idCliente: Long, transactionEntity: TransactionEntity): TransactionResponse {
-        var transacaoResponse: TransactionResponse? = null
-        return DatabaseConnection.getDataSource().connection.use { connection ->
-                val procedureCall = "{call public.register_transaction(?, ?, ?, ?)}"
-                val callableStatement: CallableStatement = connection.prepareCall(procedureCall)
-
+        return dataSource.connection.use { connection ->
+            connection.prepareCall("{call public.register_transaction(?, ?, ?, ?)}").use { callableStatement ->
                 callableStatement.setInt(1, idCliente.toInt())
                 callableStatement.setString(2, transactionEntity.type)
                 callableStatement.setLong(3, transactionEntity.amount)
                 callableStatement.setString(4, transactionEntity.description)
 
                 callableStatement.executeQuery().use { result ->
-                    if (result.next()) {
-                        transacaoResponse = TransactionResponse(result.getLong("limiteRetorno"),
-                            result.getLong("saldoRetorno"))
-                    }
+                    result.next()
+                    TransactionResponse(result.getLong("limiteRetorno"), result.getLong("saldoRetorno"))
                 }
-
-              transacaoResponse!!
             }
+        }
     }
-
-
 }

@@ -1,6 +1,6 @@
 plugins {
-    id("java")
-    id("io.gatling.gradle") version "3.12.0.3"
+    scala
+    id("io.gatling.gradle") version "3.15.1.3"
 }
 
 group = "com.felipejdias"
@@ -12,6 +12,15 @@ repositories {
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(17) // projeto em scala da rinha nao funciona com java 21
+        languageVersion = JavaLanguageVersion.of(25)
     }
+}
+
+// Copia as dependencias do Gatling para rodar a simulacao com "java -cp" puro (scripts/run-load-test.ps1).
+// Com network_mode host o Gradle nao funciona dentro do container (cliente/daemon/workers conversam por
+// TCP no loopback, que o Docker Desktop intercepta), entao o Gradle so compila e a JVM do Gatling roda sozinha.
+tasks.register<Sync>("gatlingRuntimeLibs") {
+    dependsOn("gatlingClasses", "processGatlingResources")
+    from(configurations.named("gatlingRuntimeClasspath"))
+    into(layout.buildDirectory.dir("gatling-runtime/lib"))
 }

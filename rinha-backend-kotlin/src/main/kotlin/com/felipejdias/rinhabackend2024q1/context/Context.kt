@@ -11,8 +11,8 @@ class Context(
 
     fun Context.requestToEntity(clientId: Long): TransactionEntity =
         TransactionEntity(
-             type = this.request.type,
-             amount = this.request.amount.toLong(),
-             description = this.request.description,
+             type = this.request.type!!,
+             amount = this.request.amount!!.toLong(),
+             description = this.request.description!!,
              clientId = clientId,
              createdAt = Instant.now().toString())

@@ -1,37 +1,47 @@
+# Todos os servicos usam network_mode: host (sem rede bridge e sem publicacao de portas).
+# No Windows/Docker Desktop o proxy de publicacao de porta (WSL2/vpnkit) engasga sob alta
+# concorrencia de conexoes e derruba requisicoes sem erro nenhum na aplicacao - mesmo problema
+# visto no projeto teste-itau. Com host networking nao existe NAT/proxy entre nginx, apis e banco,
+# e o Gatling rodando com --network host (scripts/run-load-test.ps1) tambem nao passa por ele.
+# Requer Docker Desktop 4.34+ com "Enable host networking" ligado em Settings > Resources > Network.
 services:
   api01: &api
     image: rinha-backend-2024-q1:latest
-    hostname: api01
+    build:
+      context: ..
+      dockerfile: rinha-backend-kotlin/Dockerfile
+    network_mode: host
     environment:
-      - DB_HOSTNAME=db
-    ports:
-      - "8081:8080"
+      - SERVER_PORT=8081
+      - DB_HOSTNAME=localhost
+      # pool pequeno: o banco tem 0.5 CPU, 2x50 conexoes so gastavam memoria do postgres
+      - SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=15
+      - SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=15
     depends_on:
       - db
     deploy:
       resources:
         limits:
-          cpus: "0.7"
+          cpus: "0.4"
           memory: "100MB"
-    networks:
-      - rede-backend
 
   api02:
     <<: *api
-    hostname: api02
     environment:
-      - DB_HOSTNAME=db
-    ports:
-      - "8082:8080"
-    networks:
-      - rede-backend
+      - SERVER_PORT=8082
+      - DB_HOSTNAME=localhost
+      - SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=15
+      - SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=15
+      # pool pequeno: o banco tem 0.5 CPU, 2x50 conexoes so gastavam memoria do postgres
+      - SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=15
+      - SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=15
+
   nginx:
-    image: nginx:latest
+    image: nginx:1.30-alpine
     container_name: 'nginx'
+    network_mode: host
     volumes:
       - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
-    ports:
-      - "9999:9999"
     depends_on:
       - api01
       - api02
@@ -39,31 +49,21 @@ services:
       resources:
         limits:
           cpus: "0.2"
-          memory: "10MB"
-    networks:
-     - rede-backend
+          memory: "20MB"
 
   db:
-    image: postgres:latest
+    image: postgres:18-alpine
     command: 'postgres -c max_connections=102 -c shared_buffers=16MB -c checkpoint_timeout=600 -c synchronous_commit=off -c fsync=off -c full_page_writes=off -c work_mem=4MB'
-    hostname: db
     container_name: 'postgress'
+    network_mode: host
     environment:
       - POSTGRES_PASSWORD=123
       - POSTGRES_USER=admin
       - POSTGRES_DB=rinha-backend
-    ports:
-      - "5432:5432"
     volumes:
       - ./scripts/script.sql:/docker-entrypoint-initdb.d/script.sql
     deploy:
       resources:
         limits:
-          cpus: "0.3"
-          memory: "220MB"
-    networks:
-      - rede-backend
-
-networks:
-  rede-backend:
-    driver: bridge
+          cpus: "0.5"
+          memory: "330MB"
